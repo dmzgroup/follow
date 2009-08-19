@@ -1,19 +1,22 @@
+#include <dmzObjectAttributeMasks.h>
+#include <dmzObjectConsts.h>
 #include "dmzPluginFollowMe.h"
 #include <dmzRuntimePluginFactoryLinkSymbol.h>
 #include <dmzRuntimePluginInfo.h>
 
 dmz::PluginFollowMe::PluginFollowMe (const PluginInfo &Info, Config &local) :
       Plugin (Info),
-      _log (Info) {
+      ObjectObserverUtil (Info, local),
+      _log (Info),
+      _hil (0),
+      _hilAttrHandle (0) {
 
-   _log.warn << "Creating Plugin: " << Info.get_name () << endl;
    _init (local);
 }
 
 
 dmz::PluginFollowMe::~PluginFollowMe () {
 
-   _log.warn << "Deleting Plugin: " << get_plugin_name () << endl;
 }
 
 
@@ -52,10 +55,37 @@ dmz::PluginFollowMe::discover_plugin (
 }
 
 
+// Object Observer Interface
+void
+dmz::PluginFollowMe::update_object_flag (
+      const UUID &Identity,
+      const Handle ObjectHandle,
+      const Handle AttributeHandle,
+      const Boolean Value,
+      const Boolean *PreviousValue) {
+
+   if (AttributeHandle == _hilAttrHandle) {
+
+      if (Value) {
+
+         _hil = ObjectHandle;
+         _log.warn << "Discovered Human in the Loop Handle: " << _hil << endl;
+      }
+      else if (ObjectHandle == _hil) {
+
+         _hil = 0;
+      }
+   }
+}
+
+
 // PluginFollowMe Interface
 void
 dmz::PluginFollowMe::_init (Config &local) {
 
+   _hilAttrHandle = activate_object_attribute (
+      ObjectAttributeHumanInTheLoopName,
+      ObjectFlagMask);
 }
 
 

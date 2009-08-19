@@ -1,15 +1,15 @@
 #ifndef DMZ_PLUGIN_FOLLOW_ME_DOT_H
 #define DMZ_PLUGIN_FOLLOW_ME_DOT_H
 
+#include <dmzObjectObserverUtil.h>
 #include <dmzRuntimeLog.h>
 #include <dmzRuntimePlugin.h>
-#include <dmzTypesMask.h>
-#include <dmzTypesVector.h>
 
 namespace dmz {
 
    class PluginFollowMe :
-         public Plugin {
+         public Plugin,
+         public ObjectObserverUtil {
 
       public:
          PluginFollowMe (const PluginInfo &Info, Config &local);
@@ -24,10 +24,22 @@ namespace dmz {
             const PluginDiscoverEnum Mode,
             const Plugin *PluginPtr);
 
+         // Object Observer Interface
+         virtual void update_object_flag (
+            const UUID &Identity,
+            const Handle ObjectHandle,
+            const Handle AttributeHandle,
+            const Boolean Value,
+            const Boolean *PreviousValue);
+
       protected:
          void _init (Config &local);
 
          Log _log;
+
+         Handle _hil;
+
+         Handle _hilAttrHandle;
 
       private:
          PluginFollowMe ();
