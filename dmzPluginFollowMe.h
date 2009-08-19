@@ -1,7 +1,9 @@
 #ifndef DMZ_PLUGIN_FOLLOW_ME_DOT_H
 #define DMZ_PLUGIN_FOLLOW_ME_DOT_H
 
+#include <dmzEventObserverUtil.h>
 #include <dmzObjectObserverUtil.h>
+#include <dmzRuntimeEventType.h>
 #include <dmzRuntimeLog.h>
 #include <dmzRuntimePlugin.h>
 #include <dmzRuntimeTimeSlice.h>
@@ -15,7 +17,8 @@ namespace dmz {
    class PluginFollowMe :
          public Plugin,
          public TimeSlice,
-         public ObjectObserverUtil {
+         public ObjectObserverUtil,
+         public EventObserverUtil {
 
       public:
          PluginFollowMe (const PluginInfo &Info, Config &local);
@@ -48,6 +51,12 @@ namespace dmz {
             const Vector &Value,
             const Vector *PreviousValue);
 
+         // Event Observer Interface
+         virtual void close_event (
+            const Handle EventHandle,
+            const EventType &Type,
+            const EventLocalityEnum Locality);
+
       protected:
          void _move (
             const Float64 TimeDelta,
@@ -73,10 +82,15 @@ namespace dmz {
          Handle _hilAttrHandle;
          Handle _targetAttrHandle;
 
+         EventType _detonationType;
+
          Vector _targetPosition;
 
          Float64 _minDistance;
          Float64 _speed;
+
+         Mask _deadState;
+         Mask _smokeAndFireState;
 
       private:
          PluginFollowMe ();

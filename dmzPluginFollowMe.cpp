@@ -1,3 +1,6 @@
+#include <dmzEventCallbackMasks.h>
+#include <dmzEventConsts.h>
+#include <dmzEventModule.h>
 #include <dmzObjectAttributeMasks.h>
 #include <dmzObjectConsts.h>
 #include <dmzObjectModule.h>
@@ -16,12 +19,14 @@ dmz::PluginFollowMe::PluginFollowMe (const PluginInfo &Info, Config &local) :
       Plugin (Info),
       TimeSlice (Info),
       ObjectObserverUtil (Info, local),
+      EventObserverUtil (Info, local),
       _log (Info),
       _isect (0),
       _hil (0),
       _me (0),
       _defaultAttrHandle (0),
       _hilAttrHandle (0),
+      _targetAttrHandle (0),
       _minDistance (15.0),
       _speed (24.0) {
 
@@ -85,21 +90,32 @@ dmz::PluginFollowMe::update_time_slice (const Float64 TimeDelta) {
 
    if (objMod && _me && !is_zero64 (TimeDelta)) {
 
-      Vector position;
-      Vector positionNew;
-      Matrix orientation;
+      Mask state;
 
-      objMod->lookup_position (_me, _defaultAttrHandle, position);
-      objMod->lookup_orientation (_me, _defaultAttrHandle, orientation);
+      objMod->lookup_state (_me, _defaultAttrHandle, state);
 
-      _move (TimeDelta, position, orientation, positionNew);
-      _turn_and_clamp (positionNew, positionNew, orientation);
+      if (state.contains (_deadState)) {
 
-      Vector velocity = (position - positionNew) * (1.0 /  TimeDelta);
+         objMod->store_velocity (_me, _defaultAttrHandle, Vector (0.0, 0.0, 0.0));
+      }
+      else {
 
-      objMod->store_position (_me, _defaultAttrHandle, positionNew);
-      objMod->store_orientation (_me, _defaultAttrHandle, orientation);
-      objMod->store_velocity (_me, _defaultAttrHandle, velocity);
+         Vector position;
+         Vector positionNew;
+         Matrix orientation;
+
+         objMod->lookup_position (_me, _defaultAttrHandle, position);
+         objMod->lookup_orientation (_me, _defaultAttrHandle, orientation);
+
+         _move (TimeDelta, position, orientation, positionNew);
+         _turn_and_clamp (positionNew, positionNew, orientation);
+
+         Vector velocity = (position - positionNew) * (1.0 /  TimeDelta);
+
+         objMod->store_position (_me, _defaultAttrHandle, positionNew);
+         objMod->store_orientation (_me, _defaultAttrHandle, orientation);
+         objMod->store_velocity (_me, _defaultAttrHandle, velocity);
+      }
    }
 }
 
@@ -160,6 +176,38 @@ dmz::PluginFollowMe::update_object_position (
       const Vector *PreviousValue) {
 
    if (ObjectHandle == _hil) { _targetPosition = Value; }
+}
+
+
+// Event Observer Interface
+void
+dmz::PluginFollowMe::close_event (
+      const Handle EventHandle,
+      const EventType &Type,
+      const EventLocalityEnum Locality) {
+
+   EventModule *eventMod (get_event_module ());
+
+   if (_me && eventMod && Type.is_of_type (_detonationType)) {
+
+      Handle target (0);
+
+      if (eventMod->lookup_object_handle (EventHandle, _targetAttrHandle, target)) {
+
+         if (target == _me) {
+
+            ObjectModule *objMod (get_object_module ());
+
+            if (objMod) {
+
+               Mask state;
+               objMod->lookup_state (_me, _defaultAttrHandle, state);
+               state |= _deadState | _smokeAndFireState;
+               objMod->store_state (_me, _defaultAttrHandle, state);
+            }
+         }
+      }
+   }
 }
 
 
@@ -224,6 +272,34 @@ dmz::PluginFollowMe::_init (Config &local) {
    _hilAttrHandle = activate_object_attribute (
       ObjectAttributeHumanInTheLoopName,
       ObjectFlagMask);
+
+   _targetAttrHandle = config_to_named_handle (
+      "attribute.target.name",
+      local,
+      EventAttributeTargetName,
+      context);
+
+   _detonationType = activate_event_callback (EventDetonationName, EventCloseMask);
+
+   _deadState = config_to_state (
+      "state.dead.name",
+      local,
+      DefaultStateNameDead,
+      context);
+
+   const Mask SmokingState = config_to_state (
+      "state.smoking.name",
+      local,
+      DefaultStateNameSmoking,
+      context);
+
+   const Mask FireState = config_to_state (
+      "state.fire.name",
+      local,
+      DefaultStateNameFire,
+      context);
+
+   _smokeAndFireState = SmokingState | FireState;
 }
 
 
