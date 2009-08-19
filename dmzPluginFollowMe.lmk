@@ -2,9 +2,11 @@ lmk.set_name "dmzPluginFollowMe"
 lmk.set_type "plugin"
 lmk.add_files {"dmzPluginFollowMe.cpp",}
 lmk.add_libs {
+   "dmzRenderIsect",
    "dmzObjectUtil",
    "dmzKernel",
 }
 lmk.add_preqs {
+   "dmzRenderFramework",
    "dmzObjectFramework",
 }

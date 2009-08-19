@@ -4,8 +4,12 @@
 #include <dmzObjectObserverUtil.h>
 #include <dmzRuntimeLog.h>
 #include <dmzRuntimePlugin.h>
+#include <dmzTypesMask.h>
+#include <dmzTypesVector.h>
 
 namespace dmz {
+
+   class RenderModuleIsect;
 
    class PluginFollowMe :
          public Plugin,
@@ -32,14 +36,34 @@ namespace dmz {
             const Boolean Value,
             const Boolean *PreviousValue);
 
+         virtual void update_object_position (
+            const UUID &Identity,
+            const Handle ObjectHandle,
+            const Handle AttributeHandle,
+            const Vector &Value,
+            const Vector *PreviousValue);
+
       protected:
+         void _turn_and_clamp (
+            const Vector Pos,
+            Vector &newPos,
+            Matrix &newOri);
+
          void _init (Config &local);
 
          Log _log;
 
-         Handle _hil;
+         RenderModuleIsect *_isect;
 
+         Handle _hil;
+         Handle _me;
+
+         Handle _defaultAttrHandle;
          Handle _hilAttrHandle;
+
+         Float64 _minDistance;
+
+         Vector _targetPosition;
 
       private:
          PluginFollowMe ();
