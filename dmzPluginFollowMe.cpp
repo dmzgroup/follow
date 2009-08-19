@@ -14,6 +14,7 @@
 
 dmz::PluginFollowMe::PluginFollowMe (const PluginInfo &Info, Config &local) :
       Plugin (Info),
+      TimeSlice (Info),
       ObjectObserverUtil (Info, local),
       _log (Info),
       _isect (0),
@@ -21,7 +22,8 @@ dmz::PluginFollowMe::PluginFollowMe (const PluginInfo &Info, Config &local) :
       _me (0),
       _defaultAttrHandle (0),
       _hilAttrHandle (0),
-      _minDistance (15.0) {
+      _minDistance (15.0),
+      _speed (24.0) {
 
    _init (local);
 }
@@ -71,6 +73,33 @@ dmz::PluginFollowMe::discover_plugin (
    else if (Mode == PluginDiscoverRemove) {
 
       if (_isect && (_isect == RenderModuleIsect::cast (PluginPtr))) { _isect = 0; }
+   }
+}
+
+
+// TimeSlice Interface
+void
+dmz::PluginFollowMe::update_time_slice (const Float64 TimeDelta) {
+
+   ObjectModule *objMod = get_object_module ();
+
+   if (objMod && _me && !is_zero64 (TimeDelta)) {
+
+      Vector position;
+      Vector positionNew;
+      Matrix orientation;
+
+      objMod->lookup_position (_me, _defaultAttrHandle, position);
+      objMod->lookup_orientation (_me, _defaultAttrHandle, orientation);
+
+      _move (TimeDelta, position, orientation, positionNew);
+      _turn_and_clamp (positionNew, positionNew, orientation);
+
+      Vector velocity = (position - positionNew) * (1.0 /  TimeDelta);
+
+      objMod->store_position (_me, _defaultAttrHandle, positionNew);
+      objMod->store_orientation (_me, _defaultAttrHandle, orientation);
+      objMod->store_velocity (_me, _defaultAttrHandle, velocity);
    }
 }
 
@@ -136,6 +165,26 @@ dmz::PluginFollowMe::update_object_position (
 
 // PluginFollowMe Interface
 void
+dmz::PluginFollowMe::_move (
+      const Float64 TimeDelta,
+      const Vector Position,
+      const Matrix Orientation,
+      Vector &positionNew) {
+
+   const Float64 CurrentDistance = (_targetPosition - Position).magnitude ();
+
+   if (CurrentDistance > _minDistance) {
+
+      Vector dir (0.0, 0.0, -1.0);
+      Orientation.transform_vector (dir);
+
+      positionNew = Position + (dir * (TimeDelta * _speed));
+   }
+   else { positionNew = Position; }
+}
+
+
+void
 dmz::PluginFollowMe::_turn_and_clamp (
       const Vector Position,
       Vector &positionNew,
@@ -167,6 +216,8 @@ dmz::PluginFollowMe::_turn_and_clamp (
 
 void
 dmz::PluginFollowMe::_init (Config &local) {
+
+   RuntimeContext *context = get_plugin_runtime_context ();
 
    _defaultAttrHandle = activate_default_object_attribute (ObjectPositionMask);
 

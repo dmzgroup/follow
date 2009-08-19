@@ -4,6 +4,7 @@
 #include <dmzObjectObserverUtil.h>
 #include <dmzRuntimeLog.h>
 #include <dmzRuntimePlugin.h>
+#include <dmzRuntimeTimeSlice.h>
 #include <dmzTypesMask.h>
 #include <dmzTypesVector.h>
 
@@ -13,6 +14,7 @@ namespace dmz {
 
    class PluginFollowMe :
          public Plugin,
+         public TimeSlice,
          public ObjectObserverUtil {
 
       public:
@@ -27,6 +29,9 @@ namespace dmz {
          virtual void discover_plugin (
             const PluginDiscoverEnum Mode,
             const Plugin *PluginPtr);
+
+         // TimeSlice Interface
+         virtual void update_time_slice (const Float64 TimeDelta);
 
          // Object Observer Interface
          virtual void update_object_flag (
@@ -44,6 +49,12 @@ namespace dmz {
             const Vector *PreviousValue);
 
       protected:
+         void _move (
+            const Float64 TimeDelta,
+            const Vector Pos,
+            const Matrix Ori,
+            Vector &pos);
+
          void _turn_and_clamp (
             const Vector Pos,
             Vector &newPos,
@@ -60,10 +71,12 @@ namespace dmz {
 
          Handle _defaultAttrHandle;
          Handle _hilAttrHandle;
-
-         Float64 _minDistance;
+         Handle _targetAttrHandle;
 
          Vector _targetPosition;
+
+         Float64 _minDistance;
+         Float64 _speed;
 
       private:
          PluginFollowMe ();
