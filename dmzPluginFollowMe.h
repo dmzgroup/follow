@@ -2,6 +2,7 @@
 #define DMZ_PLUGIN_FOLLOW_ME_DOT_H
 
 #include <dmzEventObserverUtil.h>
+#include <dmzInputObserverUtil.h>
 #include <dmzObjectObserverUtil.h>
 #include <dmzRuntimeEventType.h>
 #include <dmzRuntimeLog.h>
@@ -17,6 +18,7 @@ namespace dmz {
    class PluginFollowMe :
          public Plugin,
          public TimeSlice,
+         public InputObserverUtil,
          public ObjectObserverUtil,
          public EventObserverUtil {
 
@@ -35,6 +37,11 @@ namespace dmz {
 
          // TimeSlice Interface
          virtual void update_time_slice (const Float64 TimeDelta);
+
+         // Input Observer Interface
+         virtual void receive_key_event (
+            const Handle Channel,
+            const InputEventKey &Value);
 
          // Object Observer Interface
          virtual void update_object_flag (

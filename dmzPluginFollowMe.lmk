@@ -4,11 +4,14 @@ lmk.add_files {"dmzPluginFollowMe.cpp",}
 lmk.add_libs {
    "dmzRenderIsect",
    "dmzObjectUtil",
+   "dmzInputEvents",
+   "dmzInputUtil",
    "dmzEventUtil",
    "dmzKernel",
 }
 lmk.add_preqs {
    "dmzRenderFramework",
    "dmzObjectFramework",
+   "dmzInputFramework",
    "dmzEventFramework",
 }

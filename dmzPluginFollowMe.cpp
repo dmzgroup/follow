@@ -1,6 +1,8 @@
 #include <dmzEventCallbackMasks.h>
 #include <dmzEventConsts.h>
 #include <dmzEventModule.h>
+#include <dmzInputEventKey.h>
+#include <dmzInputEventMasks.h>
 #include <dmzObjectAttributeMasks.h>
 #include <dmzObjectConsts.h>
 #include <dmzObjectModule.h>
@@ -18,6 +20,7 @@
 dmz::PluginFollowMe::PluginFollowMe (const PluginInfo &Info, Config &local) :
       Plugin (Info),
       TimeSlice (Info),
+      InputObserverUtil (Info, local),
       ObjectObserverUtil (Info, local),
       EventObserverUtil (Info, local),
       _log (Info),
@@ -115,6 +118,27 @@ dmz::PluginFollowMe::update_time_slice (const Float64 TimeDelta) {
          objMod->store_position (_me, _defaultAttrHandle, positionNew);
          objMod->store_orientation (_me, _defaultAttrHandle, orientation);
          objMod->store_velocity (_me, _defaultAttrHandle, velocity);
+      }
+   }
+}
+
+
+// Input Observer Interface
+void
+dmz::PluginFollowMe::receive_key_event (
+      const Handle Channel,
+      const InputEventKey &Value) {
+
+   if (_me && ((Value.get_key () == 'u') && Value.get_key_state ())) {
+
+      ObjectModule *objMod (get_object_module ());
+
+      if (objMod) {
+
+         Mask state;
+         objMod->lookup_state (_me, _defaultAttrHandle, state);
+         state.unset (_deadState | _smokeAndFireState);
+         objMod->store_state (_me, _defaultAttrHandle, state);
       }
    }
 }
@@ -266,6 +290,8 @@ void
 dmz::PluginFollowMe::_init (Config &local) {
 
    RuntimeContext *context = get_plugin_runtime_context ();
+
+   activate_default_input_channel (InputEventKeyMask);
 
    _defaultAttrHandle = activate_default_object_attribute (ObjectPositionMask);
 
